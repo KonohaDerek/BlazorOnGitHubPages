@@ -1,0 +1,38 @@
+@page "/liffview"
+
+@inject IJSRuntime JS;
+
+<h1>This is Liff View</h1>
+
+@code {
+    private LiffData liff_data {get;set;}
+
+  private Lazy<Task<IJSObjectReference>> liffViewJsModlue => new(() => JS.InvokeAsync<IJSObjectReference>(
+    "import",  "./js/liffTools.js").AsTask());
+    protected override async Task OnInitializedAsync()
+    {
+       var _js = await liffViewJsModlue.Value;
+        await _js.InvokeVoidAsync("initializeLiff","1555952651-lnv1RJLP");
+
+    }
+
+  public class LiffData {
+    public string AccessToken { get; set; }
+
+      public string IdToken{ get; set; }
+
+      public string UUID{ get; set; }
+
+      public string Name{ get; set; }
+
+      public string Email{ get; set; }
+
+      public string Phome { get; set; }
+
+      public string Provider{get;set;}
+  }
+   
+}
+
+
+
