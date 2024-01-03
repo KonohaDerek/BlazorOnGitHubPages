@@ -1,0 +1,178 @@
+@page "/drawlots"
+@inject HttpClient Http
+@using System.IO;
+@using System.Text.Json;
+
+<h1>抽籤系統</h1>
+<p>
+    <label>
+        上傳抽籤者資料:
+        <InputFile OnChange="@LoadFiles" />
+    </label>
+    <label>
+        <button class="btn btn-primary" @onclick="StartDrawLots">開始抽籤</button>
+    </label>
+</p>
+<div>
+
+<label> 抽籤結果</label>
+@if (result == null)
+{
+    <p><em>Loading...</em></p>
+}
+else {
+    <div style="height:600px;overflow-y:scroll" class="box">
+        <table class="table">
+        <thead>
+            <tr>
+                <th>編號</th>
+                <th>戶別</th>
+                <th>車位編號</th>
+                <th>樓層</th>
+                <th>類型</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                    int i = 1;
+                }
+                @foreach (var item in result)
+                {
+                    <tr>
+                        <td>@i</td>
+                        <td>@item.戶別</td>
+                        <td>@item.車位編號</td>
+                        <td>@item.樓層</td>
+                        <td>@item.類型</td>
+                    </tr>
+                    i++;
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (data == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div style="height:600px;overflow-y:scroll" class="box">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>編號</th>
+                    <th>戶別</th>
+                    <th>時間戳記</th>
+                </tr>
+            </thead>
+            <tbody>
+            @{
+                int j = 1;
+            }
+            @foreach (var item in data)
+                {
+                    <tr>
+                        <td>@j</td>
+                        <td>@item.戶別</td>
+                        <td>@item.時間戳記</td>
+                    </tr>
+                j++;
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+</div>
+@code {
+    private List<SourceData> data;
+    private List<BikeSeat> bikesSeats;
+    private List<DrawResult> result;
+    private bool isLoading;
+    private List<IBrowserFile> loadedFiles = new();
+    protected override async Task OnInitializedAsync()
+    {
+        bikesSeats = await Http.GetFromJsonAsync<List<BikeSeat>>("sample-data/bike.json");
+    }
+
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file != null)
+        {
+            try
+            {
+                using var stream = file.OpenReadStream();
+                using var reader = new StreamReader(stream);
+                var jsonString = await reader.ReadToEndAsync();
+                // 将 JSON 字符串转换为类的对象
+                data = JsonSerializer.Deserialize<List<SourceData>>(jsonString);
+            }
+            catch (JsonException ex)
+            {
+                // 处理 JSON 解析错误
+            }
+            catch (Exception ex)
+            {
+                // 处理其他错误
+            } finally {
+
+            }
+        }
+    }
+
+    private void StartDrawLots() 
+    {
+        result = new List<DrawResult>();
+        var draws = data.OrderBy(x => Guid.NewGuid()).ToList();
+        foreach (var seat in bikesSeats)
+        {
+            if (draws == null || draws.Count()==0)
+            {
+                break;
+            }
+            var draw = draws.First();
+            result.Add(new DrawResult(){
+                    戶別 = draw.戶別,
+                    車位編號 = $"{seat.Floor} - {seat.Id}",
+                    樓層 = seat.Floor,
+                    類型 = seat.Type
+            });
+            draws.Remove(draw);
+        }
+    }
+
+    public class SourceData
+    {
+        public string 時間戳記 { get; set; }
+
+
+        public string 戶別 { get; set; }
+    }
+
+    public class BikeSeat
+    {
+        public int Id{get;set;}
+
+        public string Floor { get;set;}
+
+        public string Type {get;set;}
+    }
+
+
+    public class DrawResult 
+    {
+
+        public string 戶別 { get; set; }
+
+        public string 車位編號 {get;set;}
+
+        public string 樓層 {get;set;}
+
+         public string 類型 {get;set;}
+    }
+}
